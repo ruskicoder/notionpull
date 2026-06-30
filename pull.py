@@ -153,6 +153,8 @@ def run_snapshot(
 
     cmd = _docker_cmd(
         "run", "--rm", "--name", CONTAINER_RUN_NAME,
+        "--user", f"{os.getuid()}:{os.getgid()}",
+        "--env", "HOME=/tmp",
         CONTAINER_SERVICE, "python", *ns_args,
     )
 
@@ -216,8 +218,15 @@ def cleanup_container() -> None:
 
 
 def cleanup_snapshots() -> None:
-    if SNAPSHOTS_DIR.exists():
+    if not SNAPSHOTS_DIR.exists():
+        return
+    try:
         shutil.rmtree(SNAPSHOTS_DIR)
+    except PermissionError:
+        echo("Snapshots dir has root-owned files (from previous run). Attempting sudo cleanup...", style="yellow")
+        rc = subprocess.run(["sudo", "rm", "-rf", str(SNAPSHOTS_DIR)], capture_output=True)
+        if rc.returncode != 0:
+            echo(f"Could not clean snapshots. Manually remove: {SNAPSHOTS_DIR}", style="bold red")
 
 
 def cleanup_image() -> None:
@@ -284,6 +293,11 @@ def _execute(
         sys.exit(1)
 
     build_image(rebuild=rebuild)
+
+    if SNAPSHOTS_DIR.exists() and not os.access(SNAPSHOTS_DIR, os.W_OK):
+        echo("Snapshots directory is not writable (likely root-owned from a previous run). Cleaning up...", style="yellow")
+        cleanup_snapshots()
+    SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
     rc = run_snapshot(
         url=url, dark_mode=dark_mode,

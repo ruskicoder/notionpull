@@ -20,8 +20,6 @@ from bs4 import BeautifulSoup, Tag
 import html5lib  # implicitly used by bs4
 import requests
 import cssutils
-from appdirs import user_cache_dir
-
 from argparser import ARGS
 from driver import DriverInitializer
 from logger import LOG_SINGLETON as LOG, trace
@@ -40,7 +38,7 @@ class FileManager:
         FileManager.output_dir = os.path.join("snapshots", page_name)
         FileManager.assets_dir = os.path.join(FileManager.output_dir, "assets")
 
-        cache_base_dir = user_cache_dir(appname="notionpull", appauthor="ruskicoder")
+        cache_base_dir = os.path.join("snapshots", ".cache")
         FileManager.cache_dir = os.path.join(cache_base_dir, page_name)
 
         FileManager._init_output_dir()
@@ -52,7 +50,9 @@ class FileManager:
     @staticmethod
     def get_page_name() -> str:
         page_id = urllib.parse.urlparse(ARGS.url).path[1:]
-        return page_id[: page_id.rfind("-")].lower()
+        dash_idx = page_id.rfind("-")
+        name_part = page_id[:dash_idx] if dash_idx != -1 else page_id
+        return name_part.lower().replace("/", "_")
 
     @trace()
     @staticmethod
@@ -162,7 +162,9 @@ class FileManager:
     @staticmethod
     def get_filename_from_url(url: str) -> str:
         id = urllib.parse.urlparse(url).path[1:]
-        filename = id[: id.rfind("-")].lower() + ".html"
+        dash_idx = id.rfind("-")
+        name_part = id[:dash_idx] if dash_idx != -1 else id
+        filename = name_part.lower().replace("/", "_") + ".html"
         if url == ARGS.url:
             filename = "index.html"
         return filename
@@ -464,7 +466,8 @@ class Scraper:
     def _link_anchors(soup: BeautifulSoup) -> List[str]:
         subpage_urls = []
 
-        domain = f'{ARGS.url.split("notion.site")[0]}notion.site'
+        parsed_args_url = urllib.parse.urlparse(ARGS.url)
+        domain = f"{parsed_args_url.scheme}://{parsed_args_url.netloc}"
         anchors = soup.find_all("a", href=True)
 
         for a in anchors:

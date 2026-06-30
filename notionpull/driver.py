@@ -23,6 +23,8 @@ class DriverInitializer:
         opts.add_argument("--disable-gpu")
         opts.add_argument("--silent")
         opts.add_argument("--disable-logging")
+        opts.add_argument("--user-data-dir=/tmp/chrome-user-data")
+        opts.add_argument("--crash-dumps-dir=/tmp/chrome-crash-dumps")
         opts.add_argument("--headless=new") if not ARGS.show_browser else opts.add_argument("window-size=900,1200")
         opts.add_experimental_option("excludeSwitches", ["enable-logging"])
 

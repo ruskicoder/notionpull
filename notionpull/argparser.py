@@ -16,7 +16,7 @@ class ArgParser:
         parser = argparse.ArgumentParser()
         parser.add_argument("-b", "--show-browser", help="disable headless mode and show browser window", action="store_true")
         parser.add_argument("-d", "--dark-mode", help="scrape pages in dark mode", action="store_true")
-        parser.add_argument("-t", "--timeout", help="specify download timeout in seconds", type=int, default=10, metavar="TIMEOUT")
+        parser.add_argument("-t", "--timeout", help="specify download timeout in seconds", type=int, default=60, metavar="TIMEOUT")
         parser.add_argument("-c", "--disable-caching", help="disable caching of assets", action="store_true")
         parser.add_argument("url", help="url of the notion.so page to scrape", metavar="URL")
         return parser.parse_args()
@@ -31,8 +31,8 @@ class ArgParser:
         url = urllib.parse.urlparse(url_str)
         if url.scheme != "https":
             raise argparse.ArgumentTypeError("url argument doesn't start with https://")
-        if not url.netloc.endswith(".notion.site"):
-            raise argparse.ArgumentTypeError("url argument is missing 'notion.site' domain")
+        if not (url.netloc.endswith(".notion.site") or url.netloc.endswith(".notion.so") or url.netloc == "notion.so"):
+            raise argparse.ArgumentTypeError("url argument must be a notion.site or notion.so domain")
         if not url.path.startswith("/"):
             raise argparse.ArgumentTypeError("url argument doesn't contain an id")
         if url.fragment:
