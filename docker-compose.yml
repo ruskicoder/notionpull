@@ -1,0 +1,37 @@
+services:
+  main:
+    container_name: notionpull
+    stdin_open: true
+    tty: true
+    volumes:
+      - type: bind
+        source: .
+        target: /workspace
+    working_dir: /workspace
+
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM --platform=linux/amd64 python:3.11-slim-bookworm
+
+        ARG DEBIAN_FRONTEND=noninteractive
+        ENV TERM=xterm
+
+        # system deps + chrome dependencies
+        RUN apt-get update && apt-get install -y \
+            wget curl unzip \
+            && rm -rf /var/lib/apt/lists/*
+
+        # install google chrome stable
+        RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+            && apt-get update \
+            && apt-get install -y ./google-chrome-stable_current_amd64.deb \
+            && rm google-chrome-stable_current_amd64.deb \
+            && rm -rf /var/lib/apt/lists/*
+
+        # python deps (pip is python 3.11's pip)
+        COPY requirements.txt /tmp/requirements.txt
+        RUN pip install -r /tmp/requirements.txt --no-cache-dir
+
+        WORKDIR /workspace
+        CMD ["python3", "-m", "notionpull", "--help"]
