@@ -168,14 +168,15 @@ class FileManager:
 
 
 class Scraper:
-    driver_download_path: str = os.path.abspath("snapshots/" + FileManager.get_page_name() + "/assets")
-    driver: webdriver.Chrome = DriverInitializer.get_driver(driver_download_path)
-
     will_visit: Set[str] = set([ARGS.url])
     visited: Set[str] = set()
+    driver: webdriver.Chrome
 
     @staticmethod
     def run() -> None:
+        driver_download_path = os.path.abspath("snapshots/" + FileManager.get_page_name() + "/assets")
+        Scraper.driver = DriverInitializer.get_driver(driver_download_path)
+
         while Scraper.will_visit:
             url = Scraper.will_visit.pop()
 

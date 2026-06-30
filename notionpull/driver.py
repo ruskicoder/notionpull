@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
@@ -34,10 +35,15 @@ class DriverInitializer:
         }
         opts.add_experimental_option("prefs", profile)
 
-        os.environ["WDM_PROGRESS_BAR"] = str(0)
-        os.environ["WDM_LOG"] = str(logging.NOTSET)
+        # prefer pre-installed chromedriver from PATH (avoids runtime SSL/network call)
+        chromedriver_path = shutil.which("chromedriver")
+        if chromedriver_path:
+            chrome_executable: Service = ChromeService(executable_path=chromedriver_path)
+        else:
+            os.environ["WDM_PROGRESS_BAR"] = str(0)
+            os.environ["WDM_LOG"] = str(logging.NOTSET)
+            executable_path = ChromeDriverManager().install()
+            chrome_executable = ChromeService(executable_path=executable_path)
 
-        executable_path = ChromeDriverManager().install()
-        chrome_executable: Service = ChromeService(executable_path=executable_path)
         driver = webdriver.Chrome(service=chrome_executable, options=opts)
         return driver

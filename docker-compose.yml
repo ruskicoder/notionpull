@@ -17,9 +17,10 @@ services:
         ARG DEBIAN_FRONTEND=noninteractive
         ENV TERM=xterm
 
-        # system deps + chrome dependencies
+        # system deps + chrome dependencies + CA certs
         RUN apt-get update && apt-get install -y \
-            wget curl unzip \
+            wget curl unzip ca-certificates \
+            && update-ca-certificates \
             && rm -rf /var/lib/apt/lists/*
 
         # install google chrome stable
@@ -28,6 +29,20 @@ services:
             && apt-get install -y ./google-chrome-stable_current_amd64.deb \
             && rm google-chrome-stable_current_amd64.deb \
             && rm -rf /var/lib/apt/lists/*
+
+        # pre-download matching ChromeDriver (avoids runtime SSL/network call)
+        # NOTE: escape ALL $ as $$ to prevent docker-compose variable substitution
+        RUN CHROME_VER=$$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+') \
+            && echo "Detected Chrome: $$CHROME_VER" \
+            && wget -q --no-check-certificate \
+               "https://storage.googleapis.com/chrome-for-testing-public/$$CHROME_VER/linux64/chromedriver-linux64.zip" \
+               -O /tmp/chromedriver.zip \
+            && unzip -q /tmp/chromedriver.zip -d /tmp/chromedriver \
+            && cp /tmp/chromedriver/chromedriver-linux64/chromedriver /usr/local/bin/ \
+            && chmod +x /usr/local/bin/chromedriver \
+            && rm -rf /tmp/chromedriver /tmp/chromedriver.zip \
+            && echo "ChromeDriver $$CHROME_VER installed at /usr/local/bin/chromedriver" \
+            || echo "Warning: ChromeDriver pre-download failed — will use webdriver-manager at runtime"
 
         # python deps (pip is python 3.11's pip)
         COPY requirements.txt /tmp/requirements.txt
