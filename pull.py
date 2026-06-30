@@ -189,7 +189,7 @@ def find_latest_snapshot() -> Optional[Path]:
     if not SNAPSHOTS_DIR.exists():
         return None
     dirs = sorted(
-        [d for d in SNAPSHOTS_DIR.iterdir() if d.is_dir()],
+        [d for d in SNAPSHOTS_DIR.iterdir() if d.is_dir() and not d.name.startswith(".")],
         key=lambda p: p.stat().st_mtime, reverse=True,
     )
     return dirs[0] if dirs else None
@@ -304,24 +304,31 @@ def _execute(
         timeout_sec=timeout_sec, show_browser=show_browser,
         disable_caching=disable_caching,
     )
-    if rc != 0:
-        if not no_cleanup:
-            cleanup_container()
-        sys.exit(rc)
 
     snap = find_latest_snapshot()
-    if snap is None:
+    if snap is not None:
+        dest.mkdir(parents=True, exist_ok=True)
+        copy_output_to(snap, dest)
+        if rc != 0:
+            echo("Warning: Scrape completed partially. Saved partial results.", style="yellow")
+    elif rc != 0:
+        echo("No snapshot output found, and the scraper failed.", style="bold red")
+        if not no_cleanup:
+            cleanup_container()
+            cleanup_snapshots()
+        sys.exit(rc)
+    else:
         echo("No snapshot output found. The page may have failed to load.", style="bold red")
         if not no_cleanup:
             full_cleanup()
         sys.exit(1)
 
-    dest.mkdir(parents=True, exist_ok=True)
-    copy_output_to(snap, dest)
-
     if not no_cleanup:
         cleanup_snapshots()
         cleanup_container()
+
+    if rc != 0:
+        sys.exit(rc)
 
 
 # ── CLI ─────────────────────────────────────────────────────────────────────

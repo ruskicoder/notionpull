@@ -161,12 +161,21 @@ class FileManager:
 
     @staticmethod
     def get_filename_from_url(url: str) -> str:
-        id = urllib.parse.urlparse(url).path[1:]
-        dash_idx = id.rfind("-")
-        name_part = id[:dash_idx] if dash_idx != -1 else id
-        filename = name_part.lower().replace("/", "_") + ".html"
-        if url == ARGS.url:
-            filename = "index.html"
+        parsed_url = urllib.parse.urlparse(url)
+        parsed_root = urllib.parse.urlparse(ARGS.url)
+
+        # Check if it is the root page, ignoring query parameters and trailing slashes
+        if parsed_url.path.rstrip("/") == parsed_root.path.rstrip("/"):
+            return "index.html"
+
+        id_str = parsed_url.path[1:].rstrip("/")
+        dash_idx = id_str.rfind("-")
+        if dash_idx != -1:
+            name_part = id_str[:dash_idx]
+            id_part = id_str[dash_idx + 1:]
+            filename = f"{name_part.lower().replace('/', '_')}_{id_part}.html"
+        else:
+            filename = id_str.lower().replace("/", "_") + ".html"
         return filename
 
 
@@ -222,8 +231,8 @@ class Scraper:
             prev_page = d.page_source
             return False
 
-        Scraper.driver.get(url)
         try:
+            Scraper.driver.get(url)
             WebDriverWait(Scraper.driver, ARGS.timeout).until(is_page_loaded)
         except TimeoutException:
             LOG.info("timed out waiting for page to load, proceeding anyways (might be because of infinite spinners)")

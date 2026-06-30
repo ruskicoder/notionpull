@@ -48,4 +48,5 @@ class DriverInitializer:
             chrome_executable = ChromeService(executable_path=executable_path)
 
         driver = webdriver.Chrome(service=chrome_executable, options=opts)
+        driver.set_page_load_timeout(ARGS.timeout)
         return driver
