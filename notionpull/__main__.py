@@ -154,6 +154,7 @@ class FileManager:
         html_str = str(soup)
         filename = FileManager.get_filename_from_url(url)
         output_path = Path(FileManager.output_dir + "/" + filename)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "wb") as f:
             f.write(html_str.encode("utf-8").strip())
         LOG.info(f"saved page\n\n\n\n\n\n\n")
